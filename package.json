@@ -1,0 +1,19 @@
+{
+  "name": "golub-messenger",
+  "version": "5.0.0",
+  "description": "Голубь Мессенджер v5.0",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "bcryptjs": "^2.4.3",
+    "ws": "^8.16.0",
+    "uuid": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
