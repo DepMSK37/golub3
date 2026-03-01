@@ -1463,6 +1463,21 @@ function handleAPI(req, res, pathname, urlObj, data) {
     return apiOk(res,{ok:true, chat:updatedChat});
   }
 
+  if (chatEditMatch && req.method==='DELETE') {
+    const chatId = chatEditMatch[1];
+    const me = getAuth(req); if (!me) return apiErr(res,401,'Не авторизован');
+    if (!q.isMember.get(chatId,me.id)) return apiErr(res,403,'Нет доступа');
+    // Удаляем пользователя из чата (мягкое удаление — только для него)
+    db.prepare('DELETE FROM chat_members WHERE chat_id=? AND user_id=?').run(chatId, me.id);
+    // Если участников больше нет — удаляем чат и сообщения полностью
+    const remaining = db.prepare('SELECT COUNT(*) as cnt FROM chat_members WHERE chat_id=?').get(chatId);
+    if (!remaining || remaining.cnt === 0) {
+      db.prepare('DELETE FROM messages WHERE chat_id=?').run(chatId);
+      db.prepare('DELETE FROM chats WHERE id=?').run(chatId);
+    }
+    return apiOk(res,{ok:true});
+  }
+
   // Add member to group
   const addMemberMatch = pathname.match(/^\/api\/chats\/([^/]+)\/members$/);
   if (addMemberMatch && req.method==='POST') {
