@@ -286,6 +286,16 @@ function processBot1(text, userId, chatId) {
     b1State.set(userId, { step: 'menu' });
     return b1MainMenu(userId);
   }
+  if (text === '/help') {
+    return b1Reply(
+      `🚚 **DitryExpress** — Помощь\n\n👷 **Менеджер** — создаёт заявки на доставку\n🚛 **Поставщик** — принимает и выполняет заявки\n🛂 **Администратор** — полный доступ\n\n📋 Команды:\n/start — главное меню\n/help — эта справка\n/stop — сбросить сессию`,
+      [{label:'🏠 Главное меню', value:'/start'}]
+    );
+  }
+  if (text === '/stop') {
+    b1State.delete(userId);
+    return b1Reply(`✋ Сессия сброшена. Нажмите /start для начала.`, [{label:'🏠 Начать', value:'/start'}]);
+  }
 
   // Смена роли
   if (text === '__change_role' || text === '🔄 Сменить роль') {
@@ -1102,15 +1112,19 @@ function processBot2(text, userId) {
     );
   }
   if (text === '/help') return b2Reply(
-    `📐 **КарнизКал** — Помощь\n\n📏 Прямой — для одной стены\n📐 Г-образный — для угловой комнаты\n\nВведите размеры в сантиметрах, например: **510** или **510,5**`,
+    `📐 **КарнизКал** — Помощь\n\n📏 Прямой — для одной стены\n📐 Г-образный — для угловой комнаты\n\nВведите размеры в сантиметрах, например: **510** или **510,5**\n\nКоманды:\n/start — главное меню\n/help — эта справка\n/stop — сбросить сессию`,
     [{label:'🏠 Главное меню', value:'__b2_menu'}]
   );
+  if (text === '/stop') {
+    b2State.delete(userId);
+    return b2Reply(`✋ Сессия сброшена.`, [{label:'🏠 Начать', value:'__b2_menu'}]);
+  }
 
   if (text === '__b2_straight') {
     b2State.set(userId, { step: 'straight_mode' });
     return b2Reply(
       `📏 **Прямой карниз**\n\nВыберите режим раздвижения:`,
-      [{label:'↔️ К центру', value:'__b2_sm_center'}, {label:'➡️ Слева-Направо', value:'__b2_sm_ltr'}, {label:'⬅️ Назад', value:'__b2_menu'}]
+      [{label:'↔️ К центру', value:'__b2_sm_center'}, {label:'➡️ Слева-Направо', value:'__b2_sm_ltr'}, {label:'⬅️ Справа-Налево', value:'__b2_sm_rtl'}, {label:'🏠 Назад', value:'__b2_menu'}]
     );
   }
   if (text === '__b2_l') {
@@ -1122,12 +1136,12 @@ function processBot2(text, userId) {
   }
 
   if (state.step === 'straight_mode' || text.startsWith('__b2_sm_')) {
-    const modeMap = {'__b2_sm_center':'center','__b2_sm_ltr':'ltr'};
-    const modeNames = {center:'К центру', ltr:'Слева-Направо'};
+    const modeMap = {'__b2_sm_center':'center','__b2_sm_ltr':'ltr','__b2_sm_rtl':'rtl'};
+    const modeNames = {center:'К центру', ltr:'Слева-Направо', rtl:'Справа-Налево'};
     const mode = modeMap[text];
-    if (!mode) return b2Reply(`Выберите режим:`, [{label:'↔️ К центру', value:'__b2_sm_center'},{label:'➡️ Слева-Направо', value:'__b2_sm_ltr'}]);
+    if (!mode) return b2Reply(`Выберите режим:`, [{label:'↔️ К центру', value:'__b2_sm_center'},{label:'➡️ Слева-Направо', value:'__b2_sm_ltr'},{label:'⬅️ Справа-Налево', value:'__b2_sm_rtl'},{label:'🏠 Назад', value:'__b2_menu'}]);
     b2State.set(userId, { step: 'straight_len', mode, modeName: modeNames[mode] });
-    return b2Reply(`📏 Режим: **${modeNames[mode]}**\n\nВведите длину карниза X (см):\n_Например: 510_`);
+    return b2Reply(`📏 Режим: **${modeNames[mode]}**\n\nВведите длину карниза X (см):\n_Например: 510_`, [{label:'🏠 Назад', value:'__b2_straight'}]);
   }
 
   if (state.step === 'straight_len') {
@@ -1367,7 +1381,7 @@ function handleAPI(req, res, pathname, urlObj, data) {
 
   if (pathname==='/api/users/search' && req.method==='GET') {
     const me = getAuth(req); if (!me) return apiErr(res,401,'Не авторизован');
-    const pat = '%'+(urlObj.searchParams.get('q')||'')+'%';
+    const pat = (urlObj.searchParams.get('q')||'')+'%';
     const users = q.searchUsers.all(pat,pat).filter(u=>u.id!==me.id);
     const qStr = (urlObj.searchParams.get('q')||'').toLowerCase();
     // Always include bots in search
